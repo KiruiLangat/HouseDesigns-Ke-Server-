@@ -1,5 +1,5 @@
-import { createConnection } from 'mysql';
-import dotenv from 'dotenv'
+const mysql = require('mysql');
+const dotenv = require('dotenv')
 
 dotenv.config();
 
@@ -7,13 +7,14 @@ const db_config = {
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
-  database: process.env.DB_NAME
+  database: process.env.DB_NAME,
+  debug: true
 };
 
 let connection;
 
 function handleDisconnect() {
-  connection = createConnection(db_config);
+  connection = mysql.createConnection(db_config);
 
   connection.connect(function(err) {
     if(err) {
@@ -22,18 +23,18 @@ function handleDisconnect() {
     } else {
       console.log('Connection to MySQL established');
     }
-  });
-
-  connection.on('error', function(err) {
-    console.log('Database error', err);
-    if(err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
-      handleDisconnect();
-    } else {
-      throw err;
-    }
-  });
+  }); 
 }
 
 handleDisconnect();
 
-export default connection;
+connection.on('error', function(err) {
+  console.log('Database error', err);
+  if(err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+    handleDisconnect();
+  } else {
+    throw err;
+  }
+});
+
+module.exports= connection;
