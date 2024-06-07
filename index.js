@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 app.use(cors());
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 5000;
 
 const currentFileName = __filename;
 const currentDirName = path.dirname(currentFileName);
@@ -142,13 +142,13 @@ app.post('/api/contact-form', (req, res) => {
 }); 
 
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'public_html')));
+app.use(express.static(path.join(currentDirName, 'public_html')));
 
 
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.get( '*', (req, res) => { 
-    res.sendFile(path.resolve(__dirname, 'public_html','index.html')); 
+    res.sendFile(path.resolve(currentDirName, 'public_html','index.html')); 
 });
 
 app.listen(port, () => {
