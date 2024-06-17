@@ -2,27 +2,32 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const url = require('url');
-const connection = require('./MySQLConnector.js');
+const pool = require('./MySQLConnector.js');
 const dotenv = require('dotenv');
 
 
-dotenv.config();
 const app = express();
+
+dotenv.config();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+//app.use(express.static('public_html'));
+
 app.use(cors());
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 const currentFileName = __filename;
 const currentDirName = path.dirname(currentFileName);
 
+// Serve static files from the React app
+app.use(express.static(path.join(currentDirName, 'public_html')));
 
 
 // swiper carousel: Homepage
 app.get(`/api/swiper`, (_req,res) => {
-    connection.query(
+    pool.query(
         'SELECT * FROM SwiperProjects',
         (error, results) => {
             if (error) {
@@ -39,7 +44,7 @@ app.get(`/api/swiper`, (_req,res) => {
 
 //swiper carousel: Browse Projects(homepage)
 app.get(`/api/browse`, (_req,res) => {
-    connection.query(
+    pool.query(
         'SELECT * FROM BrowseSwiperProjects',
         (error, results) => {
             if (error) {
@@ -57,7 +62,7 @@ app.get(`/api/browse`, (_req,res) => {
 //fetch projects from table with sub category id
 app.get('/api/residentials/:subCategoryId', (req, res) => {
     const subCategoryId = req.params.subCategoryId;
-    connection.query(
+    pool.query(
         'SELECT * FROM projects WHERE sub_category_id = ?',
         [subCategoryId], (error, results) => {
         if (error) {
@@ -73,17 +78,18 @@ app.get('/api/residentials/:subCategoryId', (req, res) => {
 //fetch images from table with project id from projectDescription table
 app.get('/api/residentials/project-description/:title', (req, res) => {
     const title = req.params.title;
-    connection.query(
+    pool.query(
         'SELECT projects_id FROM projectDescription WHERE title = ?',
         [title], (error, results) => {
             if (error) {
-                console.error(error);
-                res.status(500).json({error: 'Internal Server Error'});
+                res.status(500).send(error);
+            } else if (results[0] === undefined) {
+                res.status(404).send('Project not found');
             } else {
                 const projectId = results[0].projects_id; //Assumes title is the same
 
                 //fetch images from table with project id
-                connection.query(
+                pool.query(
                     'SELECT image_url FROM images WHERE projects_id = ?',
                     [projectId],
                     (error, results) => {
@@ -99,7 +105,6 @@ app.get('/api/residentials/project-description/:title', (req, res) => {
             }
         }
     );
-    
 });
 
 //fetch project details from project description table with project title
@@ -107,7 +112,7 @@ app.get('/api/residentials/project-details/:title', (req, res) => {
     const title = req.params.title;
     
     //fetch project details from table with project title
-    connection.query(
+    pool.query(
         'SELECT * FROM projectDescription WHERE title = ?',
         [title],
         (error, results) => {
@@ -128,7 +133,7 @@ app.get('/api/residentials/project-details/:title', (req, res) => {
 app.post('/api/contact-form', (req, res) => {
   const { name, email, number, message } = req.body;
 
-  connection.query(
+    pool.query(
     'INSERT INTO contactForm (Name, Email, Number, Message) VALUES (?, ?, ?, ?)',
     [name, email, number, message],
     (error, _results) => {
@@ -141,8 +146,7 @@ app.post('/api/contact-form', (req, res) => {
     });
 }); 
 
-// Serve static files from the React app
-app.use(express.static(path.join(currentDirName, 'public_html')));
+
 
 
 // The "catchall" handler: for any request that doesn't

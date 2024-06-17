@@ -8,33 +8,33 @@ const db_config = {
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
-  debug: true
+  debug: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  waitForConnections: true
 };
 
-let connection;
+let pool = mysql.createPool(db_config);
 
-function handleDisconnect() {
-  connection = mysql.createConnection(db_config);
-
-  connection.connect(function(err) {
-    if(err) {
-      console.log('Error when connecting to db:', err);
-      setTimeout(handleDisconnect, 2000);
-    } else {
-      console.log('Connection to MySQL established');
-    }
-  }); 
-}
-
-handleDisconnect();
-
-connection.on('error', function(err) {
-  console.log('Database error', err);
-  if(err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
-    handleDisconnect();
-  } else {
-    throw err;
-  }
+pool.on('connection', function (connection) {
+  console.log('MySQL pool connected: threadId ' + connection.threadId);
 });
 
-module.exports= connection;
+pool.on('error', function(err) {
+  console.error('Unexpected error on the database connection', err);
+  pool.end((err) => {
+    if (err) {
+      console.error('Error ending the pool', err);
+    } else {
+      pool = mysql.createPool({
+          host: db_config.host,
+          user: db_config.user,
+          password: db_config.password,
+          database: db_config.database,
+          connectionLimit: 10
+    });
+  }
+  });
+});
+
+module.exports = pool;
