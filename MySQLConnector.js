@@ -11,7 +11,8 @@ const db_config = {
   debug: true,
   connectionLimit: 10,
   queueLimit: 0,
-  waitForConnections: true
+  waitForConnections: true,
+  connectTimeout:30000
 };
 
 let pool = mysql.createPool(db_config);
@@ -22,18 +23,15 @@ pool.on('connection', function (connection) {
 
 pool.on('error', function(err) {
   console.error('Unexpected error on the database connection', err);
+  if (err.code === 'PROTOCOL_SEQUENCE_TIMEOUT') {
+    console.error('The connection to the MySQL server timed out. Please check your network connection and the server status.');
+  }
   pool.end((err) => {
     if (err) {
       console.error('Error ending the pool', err);
     } else {
-      pool = mysql.createPool({
-          host: db_config.host,
-          user: db_config.user,
-          password: db_config.password,
-          database: db_config.database,
-          connectionLimit: 10
-    });
-  }
+      pool = mysql.createPool(db_config);
+    }
   });
 });
 

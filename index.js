@@ -5,7 +5,6 @@ const url = require('url');
 const pool = require('./MySQLConnector.js');
 const dotenv = require('dotenv');
 
-
 const app = express();
 
 dotenv.config();
@@ -23,6 +22,16 @@ const currentDirName = path.dirname(currentFileName);
 
 // Serve static files from the React app
 app.use(express.static(path.join(currentDirName, 'public_html')));
+
+pool.getConnection((err, connection) => {
+    if (err) {
+      console.error('Error getting database connection:', err);
+      return;
+    }
+  
+    console.log('Successfully connected to the database.');
+    connection.release();
+  });
 
 
 // swiper carousel: Homepage
