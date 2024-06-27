@@ -26,13 +26,17 @@ pool.on('error', function(err) {
   if (err.code === 'PROTOCOL_SEQUENCE_TIMEOUT') {
     console.error('The connection to the MySQL server timed out. Please check your network connection and the server status.');
   }
-  pool.end((err) => {
-    if (err) {
-      console.error('Error ending the pool', err);
-    } else {
-      pool = mysql.createPool(db_config);
+  pool.end((endErr) => {
+    if (endErr) {
+      console.error('Error ending the pool:', endErr);
     }
+    pool = mysql.createPool(db_config);
   });
+});
+
+process.on('uncaughtException', function(err) {
+  console.error('Caught exception: ', err);
+  process.exit(-1)
 });
 
 module.exports = pool;
