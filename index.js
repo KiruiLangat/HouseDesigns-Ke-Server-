@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const pool = require('./MySQLConnector.js');
 const dotenv = require('dotenv');
+const fetchFromWooCommerce = require('./fetchFromWoocommerce.js');
 
 const app = express();
 
@@ -14,7 +15,11 @@ app.use(cors({
     origin: 'https://housedesigns.co.ke'
 }));
 
+
 const port = process.env.PORT || 3000;
+
+
+
 
 // Ensure the connection to the database
 pool.getConnection((err, connection) => {
@@ -109,13 +114,118 @@ app.post('/api/contact-form', (req, res) => {
   });
 });
 
+
+//Commerce APIs
+app.get('/api/products', async (req, res) => {
+  const {categoryId } = req.query;
+  const params = categoryId ? { category: categoryId } : {};
+  try {
+      const products = await fetchFromWooCommerce('products',params);
+      res.json(products);
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
+});
+
+app.get('/api/categories', async (req, res) => {
+  try {
+      const categories = await fetchFromWooCommerce('products/categories?per_page=100');
+      res.json(categories);
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
+});
+
+app.get('/api/products/:productId/attributes', async (req, res) => {
+  try {
+      const { productId } = req.params;
+      const attributes = await fetchFromWooCommerce(`products/${productId}/attributes`);
+      res.json(attributes);
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
+});
+
+// Endpoint to fetch terms by attribute name
+app.get('/api/attributes/terms', async (req, res) => {
+  try {
+      const { name } = req.query;
+      const attributes = await fetchFromWooCommerce(`products/attributes`);
+      const attribute = attributes.find(attr => attr.name === name);
+      if (attribute) {
+          const terms = await fetchFromWooCommerce(`products/attributes/${attribute.id}/terms`);
+          res.json(terms);
+      } else {
+          res.status(404).send('Attribute not found');
+      }
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
+});
+
+
+app.get('/api/products/:productId/variations', async (req, res) => {
+  const { productId } = req.params;
+  try {
+      const variations = await fetchFromWooCommerce(`products/${productId}/variations`);
+      res.json(variations);
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
+});
+
+app.post('/api/checkout', async (req, res) => {
+  const { order } = req.body;
+  try {
+      const response = await fetchFromWooCommerce('orders', {
+          method: 'POST',
+          body: JSON.stringify(order),
+      });
+      res.json(response);
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
+});
+
+app.post('/api/users', async (req, res) => {
+  const { user } = req.body;
+  try {
+      const response = await fetchFromWooCommerce('customers', {
+          method: 'POST',
+          body: JSON.stringify(user),
+      });
+      res.json(response);
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
+});
+
+app.post('/api/orders', async (req, res) => {
+  const { order } = req.body;
+  try {
+      const response = await fetchFromWooCommerce('orders', {
+          method: 'POST',
+          body: JSON.stringify(order),
+      });
+      res.json(response);
+  } catch (error) {
+      res.status(500).send(error.message);
+  }
+});
+
+
+
+
+
+
+
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, 'public_html')));
 
 // The catchall handler
-app.get('*', (req, res) => {
+/*app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, 'public_html', 'index.html'));
-});
+});*/
 
 app.listen(port, () => {
   console.log(`Server is running on port http://housedesigns.co.ke:${port}`);
